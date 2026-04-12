@@ -6,7 +6,7 @@
 
 ## Соста группы
 
-Иванов Иван (github: abracadabra), Алексеев Алексей (github: example)
+Арсений Андрианов (github: arseniyandrianof-max), Михаил Гаврилов (github: wagmiky), Всеволод Табаков (github: tabak0v)
 
 ## Идея компании
 
