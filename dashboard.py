@@ -26,7 +26,7 @@ def make_app():
     for f in sorted(courses["format"].dropna().unique()):
         fmt_options.append({"label": f, "value": f})
 
-    h1 = analysis.test_mentor_vs_self()
+    h1 = analysis.test_mentor_vs_group_per_month()
     h2 = analysis.test_offline_premium_per_month()
     corr = analysis.price_duration_correlation()
     clusters = analysis.cluster_competitors()
@@ -155,9 +155,9 @@ def _clusters_and_hypotheses_tab(clusters, h1, h2, corr):
             style_cell={"fontSize": "13px", "padding": "6px"},
         ))
 
-    children.append(html.H4("Гипотеза 1: с ментором дороже самостоятельных"))
+    children.append(html.H4("Гипотеза 1: ментор дороже групповых вебинаров за месяц"))
     children.append(html.Ul([
-        html.Li(f"n: ментор={h1['n_mentor']}, self={h1['n_self']}"),
+        html.Li(f"n: ментор={h1['n_mentor']}, группа={h1['n_group']}"),
         html.Li(f"Mann-Whitney p-value: {h1['p_value']:.4f}"
                 if h1["p_value"] is not None else "недостаточно данных"),
         html.Li(f"Вывод: {h1['verdict']}"),

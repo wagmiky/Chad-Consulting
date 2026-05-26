@@ -3,7 +3,10 @@
 кластеризация конкурентов, графики и итоговый отчёт.
 
 Гипотезы:
-1) Курсы с ментором дороже самостоятельных (Mann-Whitney, one-sided).
+1) Внутри онлайна цена за месяц у курсов с ментором значимо выше, чем
+   у групповых вебинарных. Mann-Whitney, one-sided.
+   Идея: проверяем именно надбавку за персональное внимание, потому что
+   «ментор дороже самостоятельных» это тривиально (это разные продукты).
 2) Цена за месяц обучения у офлайн-курсов значимо выше, чем у онлайн-курсов
    (то есть «офлайн дороже не просто потому что дольше»). Mann-Whitney, one-sided.
 
@@ -88,19 +91,24 @@ class CompetitorAnalysis:
 
     # ---------- гипотезы ----------
 
-    def test_mentor_vs_self(self):
+    def test_mentor_vs_group_per_month(self):
         """
-        H0: цены курсов с ментором не выше, чем у самостоятельных.
-        H1: цены с ментором выше.
-        Mann-Whitney U, alternative='greater'.
+        H0: цена за месяц у ментор-курсов не выше, чем у групповых вебинарных.
+        H1: ментор-курсы стоят дороже за месяц.
+
+        Сравниваем внутри онлайн-сегмента, чтобы поймать именно надбавку
+        за персональное внимание. Просто «ментор дороже самостоятельных»
+        тривиально, потому что это разные продукты по объёму контакта.
         """
-        priced = self.courses.dropna(subset=["price_rub"])
-        mentor = priced.loc[priced["format"] == "online_mentor", "price_rub"]
-        self_paced = priced.loc[priced["format"] == "online_self", "price_rub"]
+        priced = self.courses.dropna(subset=["price_rub", "duration_months"]).copy()
+        priced = priced[priced["duration_months"] > 0]
+        priced["price_per_month"] = priced["price_rub"] / priced["duration_months"]
+        mentor = priced.loc[priced["format"] == "online_mentor", "price_per_month"]
+        group = priced.loc[priced["format"] == "online_group", "price_per_month"]
         return self._run_mw(
-            "с ментором дороже самостоятельных",
-            mentor, self_paced,
-            label_a="mentor", label_b="self",
+            "ментор дороже групповых за месяц обучения",
+            mentor, group,
+            label_a="mentor", label_b="group",
         )
 
     def test_offline_premium_per_month(self):
@@ -331,7 +339,7 @@ class CompetitorAnalysis:
         return {
             "price_summary": self.price_summary_by_format(),
             "bootstrap": self.bootstrap_median(),
-            "hypothesis_mentor": self.test_mentor_vs_self(),
+            "hypothesis_mentor": self.test_mentor_vs_group_per_month(),
             "hypothesis_offline_per_month": self.test_offline_premium_per_month(),
             "correlation": self.price_duration_correlation(),
             "clusters": self.cluster_competitors(),
@@ -366,12 +374,16 @@ class CompetitorAnalysis:
             out.append("")
 
         h1 = report["hypothesis_mentor"]
-        out.append("## Гипотеза 1: курсы с ментором дороже самостоятельных")
-        out.append(f"- n с ментором: {h1['n_mentor']}, n самостоятельных: {h1['n_self']}")
+        out.append("## Гипотеза 1: ментор дороже групповых вебинаров за месяц обучения")
+        out.append(
+            "Сравниваем внутри онлайна, чтобы поймать надбавку именно за "
+            "персональное внимание, а не за сам факт сопровождения."
+        )
+        out.append(f"- n ментор: {h1['n_mentor']}, n групповых: {h1['n_group']}")
         if h1["p_value"] is not None:
             out.append(f"- Mann-Whitney U = {h1['stat']:.1f}, p-value = {h1['p_value']:.4f}")
-            out.append(f"- медиана с ментором: {fmt_rub(h1['median_mentor'])}")
-            out.append(f"- медиана самостоятельных: {fmt_rub(h1['median_self'])}")
+            out.append(f"- медиана цены за месяц у ментора: {fmt_rub(h1['median_mentor'])}")
+            out.append(f"- медиана цены за месяц у групповых: {fmt_rub(h1['median_group'])}")
         out.append(f"- Вывод: {h1['verdict']}")
         out.append("")
 
@@ -447,15 +459,11 @@ class CompetitorAnalysis:
 
         if h1["p_value"] is not None and h1["p_value"] < 0.05:
             bits.append(
-                "Курсы с ментором значимо дороже самостоятельных. Между этими "
-                "сегментами есть зазор: короткие практические модули с "
-                "сопровождением, по цене ниже школ с большим именем."
-            )
-        else:
-            bits.append(
-                "По текущей выборке разница между форматами слабая. Значит цена "
-                "сама по себе не главный фактор, отстраиваться надо через "
-                "формат и нишу."
+                "Внутри онлайна ментор-курсы значимо дороже групповых в "
+                "пересчёте на месяц. Рынок берёт надбавку именно за "
+                "персональное внимание, а не за сам факт сопровождения. "
+                "Если мы делаем лёгкое сопровождение в групповом формате, "
+                "это становится понятным якорем цены."
             )
 
         if h2["p_value"] is not None and h2["p_value"] < 0.05:
