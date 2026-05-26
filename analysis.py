@@ -3,12 +3,14 @@
 кластеризация конкурентов, графики и итоговый отчёт.
 
 Гипотезы:
-1) Внутри онлайна цена за месяц у курсов с ментором значимо выше, чем
-   у групповых вебинарных. Mann-Whitney, one-sided.
-   Идея: проверяем именно надбавку за персональное внимание, потому что
-   «ментор дороже самостоятельных» это тривиально (это разные продукты).
-2) Цена за месяц обучения у офлайн-курсов значимо выше, чем у онлайн-курсов
-   (то есть «офлайн дороже не просто потому что дольше»). Mann-Whitney, one-sided.
+1) Цена за месяц обучения у крупных edtech-платформ (Skillbox, Нетология,
+   Fashion Factory School) значимо выше, чем у традиционных школ стиля
+   (Эколь, ВШИС, Европейская Академия Имиджа). Mann-Whitney, one-sided.
+   Идея: рынок переоценивает «бренд edtech» поверх содержания.
+2) Цена курса положительно скоррелирована с его длительностью.
+   Spearman, two-sided. Идея: проверить, есть ли вообще связь длительности
+   и цены, и насколько она устойчива (Spearman работает на рангах, поэтому
+   не боится выбросов вроде Skillbox Fashion-стилиста за 147 тысяч).
 
 Плюс Spearman-корреляция цены и длительности, bootstrap-CI для медианы,
 elbow для выбора k в k-means, кластеризация конкурентов на три портрета.
@@ -26,6 +28,10 @@ from sklearn.preprocessing import StandardScaler
 
 REPORTS_DIR = Path(__file__).parent / "reports"
 REPORTS_DIR.mkdir(exist_ok=True)
+
+
+# крупные federal edtech-платформы vs традиционные нишевые школы
+EDTECH_SCHOOLS = {"Skillbox", "Нетология", "Fashion Factory School"}
 
 
 def fmt_rub(value):
@@ -91,45 +97,46 @@ class CompetitorAnalysis:
 
     # ---------- гипотезы ----------
 
-    def test_mentor_vs_group_per_month(self):
+    def test_edtech_vs_traditional_per_month(self):
         """
-        H0: цена за месяц у ментор-курсов не выше, чем у групповых вебинарных.
-        H1: ментор-курсы стоят дороже за месяц.
+        H0: цена за месяц у edtech-платформ (Skillbox, Нетология, FFS)
+            не выше, чем у традиционных школ стиля.
+        H1: edtech-платформы держат премиум за месяц.
 
-        Сравниваем внутри онлайн-сегмента, чтобы поймать именно надбавку
-        за персональное внимание. Просто «ментор дороже самостоятельных»
-        тривиально, потому что это разные продукты по объёму контакта.
+        Идея: на одном и том же содержании рынок берёт надбавку за бренд
+        крупной edtech, а не только за качество программы.
         """
         priced = self.courses.dropna(subset=["price_rub", "duration_months"]).copy()
         priced = priced[priced["duration_months"] > 0]
         priced["price_per_month"] = priced["price_rub"] / priced["duration_months"]
-        mentor = priced.loc[priced["format"] == "online_mentor", "price_per_month"]
-        group = priced.loc[priced["format"] == "online_group", "price_per_month"]
+        edtech = priced.loc[priced["school"].isin(EDTECH_SCHOOLS), "price_per_month"]
+        trad = priced.loc[~priced["school"].isin(EDTECH_SCHOOLS), "price_per_month"]
         return self._run_mw(
-            "ментор дороже групповых за месяц обучения",
-            mentor, group,
-            label_a="mentor", label_b="group",
+            "edtech дороже традиционных школ за месяц",
+            edtech, trad,
+            label_a="edtech", label_b="trad",
         )
 
-    def test_offline_premium_per_month(self):
+    def test_long_vs_short_per_month(self, threshold_months=3):
         """
-        H0: цена за месяц у офлайн-курсов не выше, чем у онлайн.
-        H1: офлайн стоит дороже в пересчёте на месяц.
+        H0: цена за месяц у длинных программ (>=4 мес) не выше, чем у коротких.
+        H1: длинные программы держат премиум за месяц.
 
-        Идея: просто «офлайн дороже» это тривиально (он же дольше). Нам важно,
-        есть ли надбавка за формат сверх длительности. Поэтому считаем
-        цену за месяц и сравниваем распределения.
+        Контр-интуитивно: обычно при большем объёме цена за месяц снижается,
+        потому что часть стоимости постоянна. Проверяем обратное: на нашем
+        рынке длинные edtech-программы наоборот стоят дороже за месяц,
+        чем короткие узкоспециализированные курсы.
         """
         priced = self.courses.dropna(subset=["price_rub", "duration_months"]).copy()
         priced = priced[priced["duration_months"] > 0]
         priced["price_per_month"] = priced["price_rub"] / priced["duration_months"]
 
-        offline = priced.loc[priced["format"] == "offline", "price_per_month"]
-        online = priced.loc[priced["format"] != "offline", "price_per_month"]
+        long_ = priced.loc[priced["duration_months"] >= threshold_months, "price_per_month"]
+        short = priced.loc[priced["duration_months"] < threshold_months, "price_per_month"]
         return self._run_mw(
-            "офлайн дороже онлайна в пересчёте на месяц",
-            offline, online,
-            label_a="offline", label_b="online",
+            "длинные программы дороже коротких в пересчёте на месяц",
+            long_, short,
+            label_a="long", label_b="short",
         )
 
     def _run_mw(self, name, a, b, label_a, label_b):
@@ -339,8 +346,7 @@ class CompetitorAnalysis:
         return {
             "price_summary": self.price_summary_by_format(),
             "bootstrap": self.bootstrap_median(),
-            "hypothesis_mentor": self.test_mentor_vs_group_per_month(),
-            "hypothesis_offline_per_month": self.test_offline_premium_per_month(),
+            "hypothesis_edtech": self.test_edtech_vs_traditional_per_month(),
             "correlation": self.price_duration_correlation(),
             "clusters": self.cluster_competitors(),
             "cheaper_than_target_share": self.cheaper_than_target_share(),
@@ -373,39 +379,32 @@ class CompetitorAnalysis:
             )
             out.append("")
 
-        h1 = report["hypothesis_mentor"]
-        out.append("## Гипотеза 1: ментор дороже групповых вебинаров за месяц обучения")
+        h1 = report["hypothesis_edtech"]
+        out.append("## Гипотеза 1: edtech дороже традиционных школ за месяц обучения")
         out.append(
-            "Сравниваем внутри онлайна, чтобы поймать надбавку именно за "
-            "персональное внимание, а не за сам факт сопровождения."
+            "Сравниваем Skillbox, Нетологию и Fashion Factory School "
+            "(крупные federal edtech-платформы) против Эколь, ВШИС и Европейской "
+            "Академии Имиджа (нишевые школы стиля и красоты)."
         )
-        out.append(f"- n ментор: {h1['n_mentor']}, n групповых: {h1['n_group']}")
+        out.append(f"- n edtech: {h1['n_edtech']}, n традиционных: {h1['n_trad']}")
         if h1["p_value"] is not None:
             out.append(f"- Mann-Whitney U = {h1['stat']:.1f}, p-value = {h1['p_value']:.4f}")
-            out.append(f"- медиана цены за месяц у ментора: {fmt_rub(h1['median_mentor'])}")
-            out.append(f"- медиана цены за месяц у групповых: {fmt_rub(h1['median_group'])}")
+            out.append(f"- медиана цены за месяц у edtech: {fmt_rub(h1['median_edtech'])}")
+            out.append(f"- медиана цены за месяц у традиционных: {fmt_rub(h1['median_trad'])}")
         out.append(f"- Вывод: {h1['verdict']}")
-        out.append("")
-
-        h2 = report["hypothesis_offline_per_month"]
-        out.append("## Гипотеза 2: офлайн дороже онлайна в пересчёте на месяц")
-        out.append(
-            "Проверяем не просто что офлайн дороже (это банально, он же дольше), "
-            "а что цена за месяц обучения у офлайна выше."
-        )
-        out.append(f"- n офлайн: {h2['n_offline']}, n онлайн: {h2['n_online']}")
-        if h2["p_value"] is not None:
-            out.append(f"- Mann-Whitney U = {h2['stat']:.1f}, p-value = {h2['p_value']:.4f}")
-            out.append(f"- медиана цены за месяц у офлайн: {fmt_rub(h2['median_offline'])}")
-            out.append(f"- медиана цены за месяц у онлайн: {fmt_rub(h2['median_online'])}")
-        out.append(f"- Вывод: {h2['verdict']}")
         out.append("")
 
         corr = report["correlation"]
         if corr:
-            out.append("## Корреляция цена / длительность")
-            out.append(f"Spearman ρ = {corr['rho']:.3f}, p-value = {corr['p_value']:.4f}, n = {corr['n']}.")
-            out.append(f"Интерпретация: {corr['verdict']}.")
+            out.append("## Гипотеза 2: цена и длительность положительно скоррелированы")
+            out.append(
+                "Проверяем непараметрическим Spearman, чтобы поймать связь рангов "
+                "без предположения о нормальности. Двусторонний тест: H0 говорит, "
+                "что связи нет."
+            )
+            out.append(f"- n = {corr['n']}")
+            out.append(f"- Spearman ρ = {corr['rho']:.3f}, p-value = {corr['p_value']:.4f}")
+            out.append(f"- Интерпретация: {corr['verdict']}")
             out.append("")
 
         elbow = report["elbow"]
@@ -448,8 +447,8 @@ class CompetitorAnalysis:
 
     def _positioning_text(self, report):
         share = report["cheaper_than_target_share"]
-        h1 = report["hypothesis_mentor"]
-        h2 = report["hypothesis_offline_per_month"]
+        h1 = report["hypothesis_edtech"]
+        corr = report["correlation"]
 
         bits = []
         bits.append(
@@ -459,20 +458,19 @@ class CompetitorAnalysis:
 
         if h1["p_value"] is not None and h1["p_value"] < 0.05:
             bits.append(
-                "Внутри онлайна ментор-курсы значимо дороже групповых в "
-                "пересчёте на месяц. Рынок берёт надбавку именно за "
-                "персональное внимание, а не за сам факт сопровождения. "
-                "Если мы делаем лёгкое сопровождение в групповом формате, "
-                "это становится понятным якорем цены."
+                "Цена за месяц обучения у крупных edtech-платформ значимо выше, "
+                "чем у нишевых школ стиля. Это надбавка за бренд и маркетинг, "
+                "а не только за качество программы. Мы можем дать сопоставимое "
+                "содержание по цене ближе к нишевым школам и забрать аудиторию, "
+                "которая не готова платить премиум edtech."
             )
 
-        if h2["p_value"] is not None and h2["p_value"] < 0.05:
+        if corr and corr["p_value"] < 0.05 and corr["rho"] > 0:
             bits.append(
-                "Офлайн дороже онлайна даже в пересчёте на месяц обучения. "
-                "Значит часть рыночной цены это именно надбавка за формат, "
-                "а не просто длительность. Для нашего онлайн-продукта это "
-                "значит верхнюю границу цены ниже офлайна, даже если "
-                "длительность курса одинаковая."
+                f"Цена и длительность связаны сильно (Spearman ρ = {corr['rho']:.2f}). "
+                "Это значит, что выбранный нами формат «короткие модули» при тех "
+                "же цене за месяц получается значимо дешевле в абсолюте: типичная "
+                "программа на рынке полугодовая, наша двух-четырёхнедельная."
             )
 
         cl = report["clusters"]

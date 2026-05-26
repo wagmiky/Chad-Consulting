@@ -1,28 +1,20 @@
 ﻿name,title,price_rub,duration_months,format,source,url,audience,avg_views
-Style Lab,Базовый мужской стиль за 6 недель,12900.0,2.0,online_self,catalog,,,
-Style Lab,Гардероб с нуля,19900.0,3.0,online_group,catalog,,,
-Mr Image,Имидж и подбор гардероба с куратором,49900.0,3.0,online_mentor,catalog,,,
-Mr Image,Личный имидж: разбор гардероба с ментором,69900.0,4.0,online_mentor,catalog,,,
-Grooming School,Грумминг для парней: базовый,7900.0,1.0,online_self,catalog,,,
-Grooming School,Грумминг продвинутый,17500.0,2.0,online_group,catalog,,,
-Looksmaxing Pro,Луксмаксинг: основы,9900.0,1.0,online_self,catalog,,,
-Looksmaxing Pro,Луксмаксинг с наставником,39900.0,3.0,online_mentor,catalog,,,
-Skin Course,Уход за кожей лица для парней,5900.0,1.0,online_self,catalog,,,
-Skin Course,Skin Coach: программа с куратором,29900.0,2.0,online_mentor,catalog,,,
-Glance Academy,Стиль с нуля,14500.0,2.0,online_group,catalog,,,
-Glance Academy,Имидж-консультант для себя,59900.0,4.0,online_mentor,catalog,,,
-Polished,Стиль и подача в зале,45000.0,2.0,offline,catalog,,,
-Polished,Personal Brand: внешний вид и подача,79000.0,3.0,offline,catalog,,,
-Form Studio,Стартовый курс: уход и стиль,6500.0,1.0,online_self,catalog,,,
-Form Studio,Form Studio: интенсив с куратором,34900.0,2.0,online_mentor,catalog,,,
-Skin Course,Большой курс по уходу за собой,21500.0,3.0,online_group,catalog,,,
-Style Lab,Стиль: глубокая работа с наставником,54900.0,3.0,online_mentor,catalog,,,
-Glance Academy,Базовый стилист для себя,4900.0,1.0,online_self,catalog,,,
-Mr Image,Имидж-апгрейд офлайн,65000.0,2.0,offline,catalog,,,
-Менс Лук,,,,personal_brand,youtube,https://www.youtube.com/@menslook,184213.0,42874.0
-Стиль Без Шума,,,,personal_brand,youtube,https://www.youtube.com/@stilbezshuma,95742.0,21390.0
-Косметичка для парней,,,,personal_brand,youtube,https://www.youtube.com/@kosmpacka,71468.0,16812.0
-LooksLab,,,,personal_brand,youtube,https://www.youtube.com/@lookslab,312901.0,67524.0
-GroomKing,,,,personal_brand,youtube,https://www.youtube.com/@groomking,58137.0,14289.0
-Imageman,,,,personal_brand,youtube,https://www.youtube.com/@imageman,142876.0,33105.0
-Skin&Beard,,,,personal_brand,youtube,https://www.youtube.com/@skinbeard,89243.0,19867.0
+ВШИС,Мужской стиль,30000.0,2.0,online_mentor,catalog,,,
+Эколь,Стилист-имиджмейкер,35900.0,2.0,online_mentor,catalog,,,
+Эколь,Курсы стилистов для начинающих,14600.0,1.0,online_group,catalog,,,
+Эколь,Курсы капсульного гардероба,12600.0,1.0,online_self,catalog,,,
+Эколь,Курсы консультирования по стилю,12900.0,1.0,online_mentor,catalog,,,
+Skillbox,Персональный стилист,60192.0,4.0,online_mentor,catalog,,,
+Skillbox,Профессия Fashion-стилист,147188.0,6.0,online_mentor,catalog,,,
+Skillbox,Стилист-имиджмейкер,70766.0,4.0,online_mentor,catalog,,,
+Нетология,Стилист-имиджмейкер,80900.0,4.0,online_mentor,catalog,,,
+Fashion Factory School,Профессия Стилист,100750.0,3.0,online_mentor,catalog,,,
+Fashion Factory School,Стилист fashion-съёмок,123291.0,3.0,online_mentor,catalog,,,
+ВШИС,Формула стиля (для себя),12000.0,1.0,online_self,catalog,,,
+Европейская Академия Имиджа,Стилист онлайн,29900.0,2.0,online_group,catalog,,,
+ROGOV LIVE,,,,personal_brand,youtube,https://www.youtube.com/c/ROGOVLIVE,1187432.0,184523.0
+ШЛЯПА Григорий Пронин,,,,personal_brand,youtube,https://www.youtube.com/channel/UCq5j-3DW6US9k6bCL0TRsmA,87543.0,12876.0
+Егор Настоящий,,,,personal_brand,youtube,https://www.youtube.com/@egor_nastoyashiy,64218.0,18743.0
+Антон Сорвачев Феминостратегия,,,,personal_brand,youtube,https://www.youtube.com/channel/UCBNtOz6w5H9VFR6UjFDNPMQ,123476.0,28453.0
+Salavat Kypere,,,,personal_brand,youtube,https://www.youtube.com/c/SalavatKypere,231548.0,45289.0
+Emil мужской уход,,,,personal_brand,youtube,https://www.youtube.com/channel/UCOlnzlSOHYxu-I7pemHvJkQ,2087.0,4123.0

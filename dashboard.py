@@ -26,8 +26,7 @@ def make_app():
     for f in sorted(courses["format"].dropna().unique()):
         fmt_options.append({"label": f, "value": f})
 
-    h1 = analysis.test_mentor_vs_group_per_month()
-    h2 = analysis.test_offline_premium_per_month()
+    h1 = analysis.test_edtech_vs_traditional_per_month()
     corr = analysis.price_duration_correlation()
     clusters = analysis.cluster_competitors()
 
@@ -92,7 +91,7 @@ def make_app():
                 ]),
 
                 dcc.Tab(label="Кластеры и гипотезы", children=_clusters_and_hypotheses_tab(
-                    clusters, h1, h2, corr
+                    clusters, h1, corr
                 )),
             ]),
         ],
@@ -118,7 +117,7 @@ def make_app():
     return app
 
 
-def _clusters_and_hypotheses_tab(clusters, h1, h2, corr):
+def _clusters_and_hypotheses_tab(clusters, h1, corr):
     children = []
     if clusters is not None:
         cl = clusters["data"]
@@ -155,28 +154,20 @@ def _clusters_and_hypotheses_tab(clusters, h1, h2, corr):
             style_cell={"fontSize": "13px", "padding": "6px"},
         ))
 
-    children.append(html.H4("Гипотеза 1: ментор дороже групповых вебинаров за месяц"))
+    children.append(html.H4("Гипотеза 1: edtech дороже традиционных школ за месяц"))
     children.append(html.Ul([
-        html.Li(f"n: ментор={h1['n_mentor']}, группа={h1['n_group']}"),
+        html.Li(f"n: edtech={h1['n_edtech']}, традиционные={h1['n_trad']}"),
         html.Li(f"Mann-Whitney p-value: {h1['p_value']:.4f}"
                 if h1["p_value"] is not None else "недостаточно данных"),
         html.Li(f"Вывод: {h1['verdict']}"),
     ]))
 
-    children.append(html.H4("Гипотеза 2: офлайн дороже онлайна в пересчёте на месяц"))
-    children.append(html.Ul([
-        html.Li(f"n: офлайн={h2['n_offline']}, онлайн={h2['n_online']}"),
-        html.Li(f"Mann-Whitney p-value: {h2['p_value']:.4f}"
-                if h2["p_value"] is not None else "недостаточно данных"),
-        html.Li(f"Вывод: {h2['verdict']}"),
-    ]))
-
     if corr is not None:
-        children.append(html.H4("Корреляция цена / длительность"))
+        children.append(html.H4("Гипотеза 2: цена и длительность положительно скоррелированы"))
         children.append(html.Ul([
             html.Li(f"Spearman ρ = {corr['rho']:.3f}"),
             html.Li(f"p-value = {corr['p_value']:.4f}, n = {corr['n']}"),
-            html.Li(f"Интерпретация: {corr['verdict']}"),
+            html.Li(f"Вывод: {corr['verdict']}"),
         ]))
     return children
 
