@@ -1,7 +1,10 @@
 __pycache__/
 *.pyc
+.venv/
 venv/
-env/
 .env
-reports/
-config.py
+.DS_Store
+.idea/
+.vscode/
+reports/*.png
+reports/competitors.csv
