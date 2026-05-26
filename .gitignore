@@ -6,5 +6,3 @@ venv/
 .DS_Store
 .idea/
 .vscode/
-reports/*.png
-reports/competitors.csv
