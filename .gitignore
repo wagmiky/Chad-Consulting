@@ -1,8 +1,15 @@
+# python
 __pycache__/
 *.pyc
+*.pyo
 .venv/
 venv/
 .env
+
+# IDE и macOS
 .DS_Store
 .idea/
 .vscode/
+
+# jupyter
+.ipynb_checkpoints/
