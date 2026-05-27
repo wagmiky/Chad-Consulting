@@ -1,20 +1,23 @@
 ﻿name,title,price_rub,duration_months,format,source,url,audience,avg_views
-ВШИС,Мужской стиль,30000.0,2.0,online_mentor,catalog,,,
-Эколь,Стилист-имиджмейкер,35900.0,2.0,online_mentor,catalog,,,
-Эколь,Курсы стилистов для начинающих,14600.0,1.0,online_group,catalog,,,
-Эколь,Курсы капсульного гардероба,12600.0,1.0,online_self,catalog,,,
-Эколь,Курсы консультирования по стилю,12900.0,1.0,online_mentor,catalog,,,
-Skillbox,Персональный стилист,60192.0,4.0,online_mentor,catalog,,,
-Skillbox,Профессия Fashion-стилист,147188.0,6.0,online_mentor,catalog,,,
-Skillbox,Стилист-имиджмейкер,70766.0,4.0,online_mentor,catalog,,,
-Нетология,Стилист-имиджмейкер,80900.0,4.0,online_mentor,catalog,,,
-Fashion Factory School,Профессия Стилист,100750.0,3.0,online_mentor,catalog,,,
-Fashion Factory School,Стилист fashion-съёмок,123291.0,3.0,online_mentor,catalog,,,
-ВШИС,Формула стиля (для себя),12000.0,1.0,online_self,catalog,,,
-Европейская Академия Имиджа,Стилист онлайн,29900.0,2.0,online_group,catalog,,,
+Fashion Factory,Профессия «Стилист,119000.0,3.0,online_group,vc.ru,,,
+Talentsy,Стилист-имиджмейкер,105000.0,6.0,online_group,vc.ru,,,
+Эколь,Профессия «Стилист-имиджмейкер,22100.0,3.0,online_group,vc.ru,,,
+Scuola Italiana di Moda e Stile,Имидж-консультант. Fashion-стилист,157500.0,18.0,online_group,vc.ru,,,
+ВШСДТ,Fashion Стилист,60000.0,4.0,online_self,vc.ru,,,
+Bantser Fashion School,Персональный стилист,55900.0,2.0,online_mentor,vc.ru,,,
+Self Made Studio,Personal Styling,55000.0,2.0,online_group,vc.ru,,,
+Эколь,Мастер массажа лица,46300.0,2.0,online_self,vc.ru,,,
+Центр Татьяны Шубиной,Миофасциальный массаж лица и головы,38000.0,1.0,online_self,vc.ru,,,
 ROGOV LIVE,,,,personal_brand,youtube,https://www.youtube.com/c/ROGOVLIVE,1187432.0,184523.0
 ШЛЯПА Григорий Пронин,,,,personal_brand,youtube,https://www.youtube.com/channel/UCq5j-3DW6US9k6bCL0TRsmA,87543.0,12876.0
 Егор Настоящий,,,,personal_brand,youtube,https://www.youtube.com/@egor_nastoyashiy,64218.0,18743.0
 Антон Сорвачев Феминостратегия,,,,personal_brand,youtube,https://www.youtube.com/channel/UCBNtOz6w5H9VFR6UjFDNPMQ,123476.0,28453.0
 Salavat Kypere,,,,personal_brand,youtube,https://www.youtube.com/c/SalavatKypere,231548.0,45289.0
 Emil мужской уход,,,,personal_brand,youtube,https://www.youtube.com/channel/UCOlnzlSOHYxu-I7pemHvJkQ,2087.0,4123.0
+Служба MHS,,,,telegram_community,telegram,https://t.me/s/Menshairstyling,23100.0,
+Егор Настоящий,,,,telegram_community,telegram,https://t.me/s/son_godd,31800.0,
+LOOKSMAX -😀,,,,telegram_community,telegram,https://t.me/s/Looksmax,408.0,
+kovbridg,,,,telegram_community,telegram,https://t.me/s/kovbridg,,
+Мужские прически✂️| Mens Hair Styles,,,,telegram_community,telegram,https://t.me/s/menshairstyles2020,169.0,
+Men's Look,,,,telegram_community,telegram,https://t.me/s/menslooks,8320.0,
+Мужские причёски | Hair | Style | Comatozze | Ваша мамочка,,,,telegram_community,telegram,https://t.me/s/haircutsboyz,154.0,

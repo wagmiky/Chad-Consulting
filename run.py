@@ -1,44 +1,80 @@
 """
-Точка входа в проект. Собирает данные из двух источников, считает
+Точка входа в проект. Собирает данные из трёх источников, считает
 анализ, рисует графики, пишет markdown отчёт.
 
-    python run.py            собрать всё, посчитать, сохранить отчёт
-    python run.py --refresh  обновить YouTube кеш через yt-dlp
+    python run.py                       посчитать на текущем кеше
+    python run.py --refresh-courses     скачать свежие снимки vc.ru
+    python run.py --refresh             обновить YouTube кеш через yt-dlp
+    python run.py --refresh-telegram    обновить TG кеш с t.me/s/...
+    python run.py --refresh-all         обновить всё разом
 """
 
 import argparse
 
-from collector import CourseScraper, YouTubeFetcher, merge_competitors
+from collector import (
+    CourseScraper, YouTubeFetcher, TelegramScraper, merge_competitors,
+)
 from analysis import CompetitorAnalysis, REPORTS_DIR
 
 
-# каналы, которые тянем через yt-dlp при --refresh
+# YouTube каналы по теме внешнего вида для парней
 YT_CHANNELS = [
-    "https://www.youtube.com/@menslook",
-    "https://www.youtube.com/@stilbezshuma",
-    "https://www.youtube.com/@kosmpacka",
-    "https://www.youtube.com/@lookslab",
-    "https://www.youtube.com/@groomking",
-    "https://www.youtube.com/@imageman",
-    "https://www.youtube.com/@skinbeard",
+    "https://www.youtube.com/@ROGOVLIVE",
+    "https://www.youtube.com/@SHLYAPA_pronin",
+    "https://www.youtube.com/@egor_nastoyashiy",
+    "https://www.youtube.com/@feministrategy",
+    "https://www.youtube.com/@SalavatKypere",
+]
+
+# публичные Telegram-каналы по луксмаксингу, мужским причёскам и уходу.
+# Проверены на существование через TGStat и личные референсы.
+TG_CHANNELS = [
+    "Menshairstyling",
+    "son_godd",
+    "Looksmax",
+    "kovbridg",
+    "menshairstyles2020",
+    "menslooks",
+    "haircutsboyz",
 ]
 
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--refresh", action="store_true", help="заново сходить в YouTube")
+    p.add_argument("--refresh-courses", action="store_true",
+                   help="скачать свежие снимки статей vc.ru")
+    p.add_argument("--refresh", action="store_true",
+                   help="обновить YouTube кеш через yt-dlp")
+    p.add_argument("--refresh-telegram", action="store_true",
+                   help="обновить Telegram кеш через t.me/s/")
+    p.add_argument("--refresh-all", action="store_true",
+                   help="обновить все три источника")
     args = p.parse_args()
 
-    print("Парсим HTML каталог курсов...")
-    courses = CourseScraper().load()
-    print(f"  нашли {len(courses)} карточек")
+    if args.refresh_all:
+        args.refresh_courses = True
+        args.refresh = True
+        args.refresh_telegram = True
+
+    print("Парсим HTML каталоги курсов с vc.ru...")
+    courses = CourseScraper().load(refresh=args.refresh_courses)
+    print(f"  курсов с ценами: {len(courses)}")
 
     print("Берём данные по YouTube каналам...")
     youtube = YouTubeFetcher(YT_CHANNELS).load(refresh=args.refresh)
-    print(f"  {len(youtube)} каналов")
+    print(f"  каналов YouTube: {len(youtube)}")
 
-    merged = merge_competitors(courses, youtube)
+    print("Берём данные по Telegram каналам...")
+    telegram = TelegramScraper(TG_CHANNELS).load(refresh=args.refresh_telegram)
+    print(f"  каналов Telegram: {len(telegram)}")
+
+    merged = merge_competitors(courses, youtube, telegram)
     merged.to_csv(REPORTS_DIR / "competitors.csv", index=False, encoding="utf-8-sig")
+
+    if len(courses) == 0:
+        print("\nКурсов нет, гипотезы по ценам не считаем.")
+        print("Дашборд и YouTube-аналитику всё равно собираем.")
+        return
 
     print("Считаем анализ и пишем отчёт...")
     analysis = CompetitorAnalysis(courses, youtube)

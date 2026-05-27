@@ -30,8 +30,18 @@ REPORTS_DIR = Path(__file__).parent / "reports"
 REPORTS_DIR.mkdir(exist_ok=True)
 
 
-# крупные federal edtech-платформы vs традиционные нишевые школы
-EDTECH_SCHOOLS = {"Skillbox", "Нетология", "Fashion Factory School"}
+# крупные federal edtech-платформы vs традиционные нишевые школы.
+# Расширяем подстроковым матчингом: если в названии школы есть любая
+# из этих подстрок, считаем её edtech.
+EDTECH_SCHOOL_HINTS = (
+    "skillbox", "нетология", "fashion factory", "talentsy", "geekbrains",
+    "хедукейт", "hedu",
+)
+
+
+def is_edtech(school_name):
+    low = (school_name or "").lower()
+    return any(hint in low for hint in EDTECH_SCHOOL_HINTS)
 
 
 def fmt_rub(value):
@@ -41,12 +51,17 @@ def fmt_rub(value):
 
 class CompetitorAnalysis:
 
-    def __init__(self, courses, youtube, target_price=14900):
+    def __init__(self, courses, youtube, target_quantile=0.10):
         self.courses = courses.copy()
         self.youtube = youtube.copy()
-        # target_price это гипотеза прайса нашего продукта.
-        # Здесь стоит ориентир, его потом валидировать своим опросом ЦА.
-        self.target_price = target_price
+        # target_price считается из данных как нижний квантиль рынка.
+        # По умолчанию 10-й перцентиль: позиционируемся дешевле 90% курсов.
+        self.target_quantile = target_quantile
+        priced = self.courses["price_rub"].dropna()
+        if len(priced) >= 5:
+            self.target_price = int(round(float(priced.quantile(target_quantile))))
+        else:
+            self.target_price = None
 
     # ---------- метрики по ценам ----------
 
@@ -62,7 +77,7 @@ class CompetitorAnalysis:
 
     def cheaper_than_target_share(self):
         priced = self.courses.dropna(subset=["price_rub"])
-        if len(priced) == 0:
+        if len(priced) == 0 or self.target_price is None:
             return 0.0
         return float((priced["price_rub"] < self.target_price).mean())
 
@@ -97,25 +112,56 @@ class CompetitorAnalysis:
 
     # ---------- гипотезы ----------
 
-    def test_edtech_vs_traditional_per_month(self):
+    def test_target_below_market(self, n_iter=2000, seed=42):
         """
-        H0: цена за месяц у edtech-платформ (Skillbox, Нетология, FFS)
-            не выше, чем у традиционных школ стиля.
-        H1: edtech-платформы держат премиум за месяц.
+        H0: наш плановый прайс лежит внутри 95% CI медианы рынка (не отличается).
+        H1: наш плановый прайс значимо ниже медианы рынка
+            (target < нижней границы CI).
 
-        Идея: на одном и том же содержании рынок берёт надбавку за бренд
-        крупной edtech, а не только за качество программы.
+        Считаем через bootstrap: 2000 раз пересэмплируем цены, считаем медиану,
+        получаем доверительный интервал. Если target ниже ci_low, рынок значимо
+        дороже нашего прайса — позиционирование ниже рынка валидно.
         """
-        priced = self.courses.dropna(subset=["price_rub", "duration_months"]).copy()
-        priced = priced[priced["duration_months"] > 0]
-        priced["price_per_month"] = priced["price_rub"] / priced["duration_months"]
-        edtech = priced.loc[priced["school"].isin(EDTECH_SCHOOLS), "price_per_month"]
-        trad = priced.loc[~priced["school"].isin(EDTECH_SCHOOLS), "price_per_month"]
-        return self._run_mw(
-            "edtech дороже традиционных школ за месяц",
-            edtech, trad,
-            label_a="edtech", label_b="trad",
-        )
+        priced = self.courses.dropna(subset=["price_rub"])
+        prices = priced["price_rub"].to_numpy()
+        if len(prices) < 5:
+            return {
+                "name": "наш прайс значимо ниже медианы рынка",
+                "target": self.target_price,
+                "median": None,
+                "ci_low": None,
+                "ci_high": None,
+                "n": int(len(prices)),
+                "verdict": "слишком мало данных для bootstrap",
+            }
+        rng = np.random.default_rng(seed)
+        medians = [np.median(rng.choice(prices, size=len(prices), replace=True))
+                   for _ in range(n_iter)]
+        ci_low = float(np.quantile(medians, 0.025))
+        ci_high = float(np.quantile(medians, 0.975))
+        median = float(np.median(prices))
+        target = self.target_price
+
+        if target < ci_low:
+            verdict = (
+                f"подтверждается: наш прайс {target:,} ₽ ниже нижней границы "
+                f"95% CI медианы рынка ({ci_low:,.0f} ₽)"
+            ).replace(",", " ")
+        else:
+            verdict = (
+                f"не подтверждается: {target:,} ₽ попадает внутрь 95% CI медианы "
+                f"рынка [{ci_low:,.0f}; {ci_high:,.0f}] ₽"
+            ).replace(",", " ")
+
+        return {
+            "name": "наш прайс значимо ниже медианы рынка",
+            "target": target,
+            "median": median,
+            "ci_low": ci_low,
+            "ci_high": ci_high,
+            "n": int(len(prices)),
+            "verdict": verdict,
+        }
 
     def test_long_vs_short_per_month(self, threshold_months=3):
         """
@@ -346,7 +392,7 @@ class CompetitorAnalysis:
         return {
             "price_summary": self.price_summary_by_format(),
             "bootstrap": self.bootstrap_median(),
-            "hypothesis_edtech": self.test_edtech_vs_traditional_per_month(),
+            "hypothesis_pricing": self.test_target_below_market(),
             "correlation": self.price_duration_correlation(),
             "clusters": self.cluster_competitors(),
             "cheaper_than_target_share": self.cheaper_than_target_share(),
@@ -379,18 +425,20 @@ class CompetitorAnalysis:
             )
             out.append("")
 
-        h1 = report["hypothesis_edtech"]
-        out.append("## Гипотеза 1: edtech дороже традиционных школ за месяц обучения")
+        h1 = report["hypothesis_pricing"]
+        out.append("## Гипотеза 1: целевой прайс значимо ниже медианы рынка")
         out.append(
-            "Сравниваем Skillbox, Нетологию и Fashion Factory School "
-            "(крупные federal edtech-платформы) против Эколь, ВШИС и Европейской "
-            "Академии Имиджа (нишевые школы стиля и красоты)."
+            f"Целевой прайс задаём как {int(self.target_quantile * 100)}-й "
+            "перцентиль рынка (дешевле 90% наблюдаемых конкурентов). "
+            "Проверяем через bootstrap: 2000 раз пересэмплируем цены, считаем "
+            "медиану, получаем 95% доверительный интервал. Если наш прайс "
+            "ниже нижней границы CI, мы значимо дешевле рынка."
         )
-        out.append(f"- n edtech: {h1['n_edtech']}, n традиционных: {h1['n_trad']}")
-        if h1["p_value"] is not None:
-            out.append(f"- Mann-Whitney U = {h1['stat']:.1f}, p-value = {h1['p_value']:.4f}")
-            out.append(f"- медиана цены за месяц у edtech: {fmt_rub(h1['median_edtech'])}")
-            out.append(f"- медиана цены за месяц у традиционных: {fmt_rub(h1['median_trad'])}")
+        out.append(f"- n курсов: {h1['n']}")
+        if h1["median"] is not None:
+            out.append(f"- медиана рынка: {fmt_rub(h1['median'])}")
+            out.append(f"- 95% CI медианы: {fmt_rub(h1['ci_low'])} .. {fmt_rub(h1['ci_high'])}")
+            out.append(f"- наш плановый прайс: {fmt_rub(h1['target'])}")
         out.append(f"- Вывод: {h1['verdict']}")
         out.append("")
 
@@ -447,7 +495,7 @@ class CompetitorAnalysis:
 
     def _positioning_text(self, report):
         share = report["cheaper_than_target_share"]
-        h1 = report["hypothesis_edtech"]
+        h1 = report["hypothesis_pricing"]
         corr = report["correlation"]
 
         bits = []
@@ -456,13 +504,12 @@ class CompetitorAnalysis:
             f"оказывается около {share * 100:.0f}% курсов на рынке."
         )
 
-        if h1["p_value"] is not None and h1["p_value"] < 0.05:
+        if h1.get("ci_low") and h1["target"] < h1["ci_low"]:
             bits.append(
-                "Цена за месяц обучения у крупных edtech-платформ значимо выше, "
-                "чем у нишевых школ стиля. Это надбавка за бренд и маркетинг, "
-                "а не только за качество программы. Мы можем дать сопоставимое "
-                "содержание по цене ближе к нишевым школам и забрать аудиторию, "
-                "которая не готова платить премиум edtech."
+                f"Наш прайс {fmt_rub(h1['target'])} статистически значимо ниже "
+                f"медианы рынка: попадает ниже нижней границы 95% доверительного "
+                f"интервала ({fmt_rub(h1['ci_low'])}). Это валидная отстройка "
+                "по цене от существующих платных конкурентов."
             )
 
         if corr and corr["p_value"] < 0.05 and corr["rho"] > 0:

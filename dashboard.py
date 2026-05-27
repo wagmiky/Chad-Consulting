@@ -8,25 +8,26 @@
 import plotly.express as px
 from dash import Dash, dcc, html, dash_table, Input, Output
 
-from collector import CourseScraper, YouTubeFetcher
+from collector import CourseScraper, YouTubeFetcher, TelegramScraper
 from analysis import CompetitorAnalysis
 
 
 def _prepare():
     courses = CourseScraper().load()
-    youtube = YouTubeFetcher(channels=[]).load()  # из кеша
+    youtube = YouTubeFetcher(channels=[]).load()        # из кеша
+    telegram = TelegramScraper(channels=[]).load()      # из кеша
     analysis = CompetitorAnalysis(courses, youtube)
-    return courses, youtube, analysis
+    return courses, youtube, telegram, analysis
 
 
 def make_app():
-    courses, youtube, analysis = _prepare()
+    courses, youtube, telegram, analysis = _prepare()
 
     fmt_options = [{"label": "Все форматы", "value": "all"}]
     for f in sorted(courses["format"].dropna().unique()):
         fmt_options.append({"label": f, "value": f})
 
-    h1 = analysis.test_edtech_vs_traditional_per_month()
+    h1 = analysis.test_target_below_market()
     corr = analysis.price_duration_correlation()
     clusters = analysis.cluster_competitors()
 
@@ -72,23 +73,15 @@ def make_app():
                             y="price_rub",
                             color="format",
                             hover_data=["title", "school"],
-                            title="Цена и длительность",
+                            title="Курсы: цена и длительность",
                             template="simple_white",
                             labels={"duration_months": "Длительность, мес",
                                     "price_rub": "Цена, руб"},
                         )
                     ),
-                    dcc.Graph(
-                        figure=px.bar(
-                            youtube.sort_values("subscribers", ascending=False),
-                            x="subscribers",
-                            y="channel",
-                            orientation="h",
-                            title="YouTube-конкуренты по числу подписчиков",
-                            template="simple_white",
-                        ).update_layout(yaxis={"categoryorder": "total ascending"})
-                    ),
                 ]),
+
+                dcc.Tab(label="Социальные конкуренты", children=_social_tab(youtube, telegram)),
 
                 dcc.Tab(label="Кластеры и гипотезы", children=_clusters_and_hypotheses_tab(
                     clusters, h1, corr
@@ -115,6 +108,37 @@ def make_app():
         return view.to_dict("records"), fig
 
     return app
+
+
+def _social_tab(youtube, telegram):
+    children = [html.H4("Бесплатный контент: прямые конкуренты нашего продукта")]
+
+    if youtube is not None and not youtube.empty:
+        yt = youtube.dropna(subset=["subscribers"]).sort_values("subscribers", ascending=True)
+        children.append(dcc.Graph(figure=px.bar(
+            yt,
+            x="subscribers", y="channel", orientation="h",
+            title="YouTube-каналы по числу подписчиков",
+            template="simple_white",
+        ).update_layout(yaxis={"categoryorder": "total ascending"})))
+
+    if telegram is not None and not telegram.empty:
+        tg = telegram.dropna(subset=["subscribers"]).sort_values("subscribers", ascending=True)
+        if not tg.empty:
+            children.append(dcc.Graph(figure=px.bar(
+                tg,
+                x="subscribers", y="channel", orientation="h",
+                title="Telegram-каналы по числу подписчиков",
+                template="simple_white",
+            ).update_layout(yaxis={"categoryorder": "total ascending"})))
+
+        total_yt = int(youtube["subscribers"].dropna().sum()) if youtube is not None and not youtube.empty else 0
+        total_tg = int(telegram["subscribers"].dropna().sum())
+        children.append(html.P(
+            f"Суммарная аудитория: YouTube {total_yt:,}, Telegram {total_tg:,}".replace(",", " ")
+        ))
+
+    return children
 
 
 def _clusters_and_hypotheses_tab(clusters, h1, corr):
@@ -154,11 +178,14 @@ def _clusters_and_hypotheses_tab(clusters, h1, corr):
             style_cell={"fontSize": "13px", "padding": "6px"},
         ))
 
-    children.append(html.H4("Гипотеза 1: edtech дороже традиционных школ за месяц"))
+    children.append(html.H4("Гипотеза 1: наш прайс значимо ниже медианы рынка"))
     children.append(html.Ul([
-        html.Li(f"n: edtech={h1['n_edtech']}, традиционные={h1['n_trad']}"),
-        html.Li(f"Mann-Whitney p-value: {h1['p_value']:.4f}"
-                if h1["p_value"] is not None else "недостаточно данных"),
+        html.Li(f"n курсов: {h1['n']}"),
+        html.Li(f"медиана рынка: {int(h1['median']):,} ₽".replace(",", " ")
+                if h1.get("median") else "недостаточно данных"),
+        html.Li(f"95% CI: {int(h1['ci_low']):,}..{int(h1['ci_high']):,} ₽".replace(",", " ")
+                if h1.get("ci_low") else ""),
+        html.Li(f"наш прайс: {int(h1['target']):,} ₽".replace(",", " ")),
         html.Li(f"Вывод: {h1['verdict']}"),
     ]))
 
